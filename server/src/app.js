@@ -7,7 +7,14 @@ import zonesRoutes from './routes/zones.routes.js'
 
 const app = express()
 
-app.use(cors())
+app.use(cors({
+  origin: [
+    'https://safe-tour-ten.vercel.app',
+    'http://localhost:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}))
 app.use(express.json())
 
 app.use('/api/auth', authRoutes)
