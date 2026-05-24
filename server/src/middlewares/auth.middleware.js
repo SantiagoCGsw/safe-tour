@@ -13,3 +13,12 @@ export const protect = async (req, res, next) => {
     res.status(401).json({ message: 'Token inválido' })
   }
 }
+
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.rol)) {
+      return res.status(403).json({ message: 'Acceso denegado' })
+    }
+    next()
+  }
+}
