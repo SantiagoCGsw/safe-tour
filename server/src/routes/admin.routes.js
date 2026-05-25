@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { protect, authorizeRoles } from '../middlewares/auth.middleware.js'
+import { crearCuenta } from '../controllers/auth.controller.js'
 import User from '../models/User.model.js'
 import Report from '../models/Report.model.js'
 import Zone from '../models/Zone.model.js'
@@ -53,5 +54,7 @@ router.put('/usuarios/:id/rol', protect, authorizeRoles('admin'), async (req, re
     res.status(500).json({ message: error.message })
   }
 })
+
+router.post('/crear-cuenta', protect, authorizeRoles('admin'), crearCuenta)
 
 export default router

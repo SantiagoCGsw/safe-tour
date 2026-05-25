@@ -1,24 +1,12 @@
 import { Router } from 'express'
-import Zone from '../models/Zone.model.js'
+import { listarZonas, crearZona, actualizarZona, eliminarZona } from '../controllers/zones.controller.js'
+import { protect, authorizeRoles } from '../middlewares/auth.middleware.js'
 
 const router = Router()
 
-router.get('/', async (req, res) => {
-  try {
-    const zonas = await Zone.find({ activo: true })
-    res.json(zonas)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
-})
-
-router.post('/', async (req, res) => {
-  try {
-    const zona = await Zone.create(req.body)
-    res.status(201).json(zona)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
-})
+router.get('/', listarZonas)
+router.post('/', protect, authorizeRoles('gestor', 'admin'), crearZona)
+router.put('/:id', protect, authorizeRoles('gestor', 'admin'), actualizarZona)
+router.delete('/:id', protect, authorizeRoles('gestor', 'admin'), eliminarZona)
 
 export default router

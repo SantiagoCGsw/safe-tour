@@ -10,7 +10,7 @@ export const register = async (req, res) => {
     if (existe) return res.status(400).json({ message: 'El correo ya está registrado' })
 
     const hash = await bcrypt.hash(password, 10)
-    const user = await User.create({ nombre, email, password: hash })
+    const user = await User.create({ nombre, email, password: hash, rol: 'turista' })
 
     res.status(201).json({
       _id: user._id,
@@ -40,6 +40,32 @@ export const login = async (req, res) => {
       email: user.email,
       rol: user.rol,
       token: generateToken(user._id)
+    })
+  } catch (error) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+// Solo admin — crea turistas, gestores o admins
+export const crearCuenta = async (req, res) => {
+  try {
+    const { nombre, email, password, rol } = req.body
+
+    if (!['turista', 'gestor', 'admin'].includes(rol)) {
+      return res.status(400).json({ message: 'Rol inválido' })
+    }
+
+    const existe = await User.findOne({ email })
+    if (existe) return res.status(400).json({ message: 'El correo ya está registrado' })
+
+    const hash = await bcrypt.hash(password, 10)
+    const user = await User.create({ nombre, email, password: hash, rol })
+
+    res.status(201).json({
+      _id: user._id,
+      nombre: user.nombre,
+      email: user.email,
+      rol: user.rol
     })
   } catch (error) {
     res.status(500).json({ message: error.message })
