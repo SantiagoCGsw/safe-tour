@@ -1,17 +1,12 @@
-import { Router } from 'express'
-import { protect, authorizeRoles } from '../middlewares/auth.middleware.js'
-import {
-  listarZonas,
-  crearZona,
-  actualizarZona,
-  eliminarZona
-} from '../controllers/zones.controller.js'
+﻿import mongoose from 'mongoose'
 
-const router = Router()
+const zoneSchema = new mongoose.Schema({
+  nombre:         { type: String, required: true },
+  descripcion:    { type: String, default: '' },
+  tipo:           { type: String, enum: ['turistica', 'cultural', 'peligrosa', 'segura'], required: true },
+  nivelSeguridad: { type: Number, min: 1, max: 5, default: 3 },
+  coordenadas:    [{ lat: Number, lng: Number }],
+  activo:         { type: Boolean, default: true }
+}, { timestamps: true })
 
-router.get('/', listarZonas)
-router.post('/', protect, authorizeRoles('gestor', 'admin'), crearZona)
-router.put('/:id', protect, authorizeRoles('gestor', 'admin'), actualizarZona)
-router.delete('/:id', protect, authorizeRoles('gestor', 'admin'), eliminarZona)
-
-export default router
+export default mongoose.model('Zone', zoneSchema)
