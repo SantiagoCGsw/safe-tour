@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
@@ -18,22 +18,29 @@ const iconosPorTipo = {
   default:   { emoji: '📌', color: '#6366f1' },
 }
 
+export const coloresPorTipoZona = {
+  turistica: { color: '#3b82f6', fill: '#3b82f620' },
+  cultural:  { color: '#8b5cf6', fill: '#8b5cf620' },
+  peligrosa: { color: '#ef4444', fill: '#ef444420' },
+  segura:    { color: '#10b981', fill: '#10b98120' },
+}
+
 const crearIcono = (tipo) => {
   const info = iconosPorTipo[tipo?.toLowerCase()] || iconosPorTipo.default
   return L.divIcon({
     className: '',
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${info.color};border:2px solid rgba(255,255,255,0.8);box-shadow:0 2px 8px rgba(0,0,0,0.4)"><span style="transform:rotate(45deg);font-size:16px">${info.emoji}</span></div>`,
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${info.color};border:2px solid rgba(255,255,255,0.8);box-shadow:0 2px 8px rgba(0,0,0,0.3)"><span style="transform:rotate(45deg);font-size:16px">${info.emoji}</span></div>`,
     iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36],
   })
 }
 
 const iconoYo = L.divIcon({
   className: '',
-  html: '<div style="width:20px;height:20px;border-radius:50%;background:#00e5ff;border:3px solid white;box-shadow:0 0 20px #00e5ff;"></div>',
+  html: '<div style="width:20px;height:20px;border-radius:50%;background:#0ea5e9;border:3px solid white;box-shadow:0 0 16px #0ea5e9;"></div>',
   iconSize: [20, 20], iconAnchor: [10, 10],
 })
 
-const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+const TILE_URL  = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 const TILE_ATTR = '&copy; OpenStreetMap &copy; CARTO'
 const BOGOTA    = [4.711, -74.0721]
 
@@ -47,9 +54,7 @@ function BotonUbicacion({ setMiUbicacion }) {
       map.flyTo(coords, 16, { duration: 1.2 })
     })
   }
-  return (
-    <div onClick={centrar} title="Mi ubicación" style={s.botonGps}>🎯</div>
-  )
+  return <div onClick={centrar} title="Mi ubicación" style={s.botonGps}>🎯</div>
 }
 
 function SelectorUbicacion({ creandoReporte, setPosicionNueva, setMostrarFormulario }) {
@@ -63,18 +68,49 @@ function SelectorUbicacion({ creandoReporte, setPosicionNueva, setMostrarFormula
   return null
 }
 
-export default function MapView({ reportes, miUbicacion, setMiUbicacion, posicionNueva, setPosicionNueva, setMostrarFormulario, creandoReporte, tipoNuevo }) {
+export default function MapView({
+  reportes, zonas = [],
+  miUbicacion, setMiUbicacion,
+  posicionNueva, setPosicionNueva,
+  setMostrarFormulario, creandoReporte, tipoNuevo
+}) {
   return (
     <MapContainer center={BOGOTA} zoom={13} style={s.mapa} zoomControl={false}>
       <ZoomControl position="bottomleft" />
       <TileLayer attribution={TILE_ATTR} url={TILE_URL} />
-      <SelectorUbicacion creandoReporte={creandoReporte} setPosicionNueva={setPosicionNueva} setMostrarFormulario={setMostrarFormulario} />
+      <SelectorUbicacion
+        creandoReporte={creandoReporte}
+        setPosicionNueva={setPosicionNueva}
+        setMostrarFormulario={setMostrarFormulario}
+      />
 
+      {/* Zonas como polígonos */}
+      {zonas.filter(z => z.coordenadas?.length >= 3).map(z => {
+        const colores = coloresPorTipoZona[z.tipo] || coloresPorTipoZona.turistica
+        const posiciones = z.coordenadas.map(c => [c.lat, c.lng])
+        return (
+          <Polygon
+            key={z._id}
+            positions={posiciones}
+            pathOptions={{ color: colores.color, fillColor: colores.color, fillOpacity: 0.18, weight: 2 }}
+          >
+            <Popup>
+              <strong>{z.nombre}</strong><br />
+              <span style={{ fontSize: '12px', color: '#555' }}>
+                {z.tipo} · Seguridad: {z.nivelSeguridad}/5
+              </span>
+              {z.descripcion && <p style={{ margin: '4px 0 0', fontSize: '12px' }}>{z.descripcion}</p>}
+            </Popup>
+          </Polygon>
+        )
+      })}
+
+      {/* Reportes */}
       {reportes.map(r =>
         r.ubicacion?.lat && r.ubicacion?.lng ? (
           <Marker key={r._id} position={[r.ubicacion.lat, r.ubicacion.lng]} icon={crearIcono(r.tipo)}>
             <Popup>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
                 <strong style={{ color: '#1a1a2e' }}>{r.titulo}</strong>
                 <span style={{ fontSize: '12px', color: '#555' }}>{r.tipo} · {r.autor?.nombre || 'Anónimo'}</span>
                 {r.descripcion && <p style={{ margin: 0, fontSize: '13px', color: '#333' }}>{r.descripcion}</p>}
@@ -101,5 +137,12 @@ export default function MapView({ reportes, miUbicacion, setMiUbicacion, posicio
 
 const s = {
   mapa:     { width: '100%', height: '100%' },
-  botonGps: { position: 'absolute', bottom: '120px', right: '16px', zIndex: 1000, width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(5,18,40,0.9)', border: '1px solid rgba(100,180,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(10px)', boxShadow: '0 2px 12px rgba(0,0,0,0.4)', fontSize: '20px' },
+  botonGps: {
+    position: 'absolute', bottom: '120px', right: '16px', zIndex: 1000,
+    width: '44px', height: '44px', borderRadius: '12px',
+    background: 'rgba(5,18,40,0.85)', border: '1px solid rgba(100,180,255,0.3)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', backdropFilter: 'blur(10px)',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.3)', fontSize: '20px',
+  },
 }
